@@ -1,5 +1,9 @@
 import scrapy
 
+from scrapy.loader import ItemLoader
+
+from ..items import BookItem
+
 
 class BookstoscrapeSpider(scrapy.Spider):
     name = 'bookstoscrape'
@@ -10,25 +14,23 @@ class BookstoscrapeSpider(scrapy.Spider):
         for path in response.css(".nav-list ul a::attr(href)").getall():
             yield scrapy.Request(response.urljoin(path),
                                  callback=self.parse_category)
-        
+
     def parse_category(self, response):
         for path in response.css(".product_pod h3 a::attr(href)").getall():
             yield scrapy.Request(response.urljoin(path),
                                  callback=self.parse_book)
 
     def parse_book(self, response):
-        title = response.css(".product_main h1::text").get()
-        thumbnail = response.css(".carousel-inner img::attr(src)").get()
-        rate = response.css(".product_main .star-rating::attr(class)").get().split(' ')[-1]
-        stock = response.css(".availability").re_first(r"(\d+)")
-        description = response.css(".product_page > p::text").get()
-        price = response.css(".product_main .price_color::text").get()
-        return {
-            "url": response.url,
-            "title": title,
-            "rate": rate,
-            "stock": stock,
-            "description": description,
-            "price": price,
-            "thumbnail": response.urljoin(image),
-        }
+        loader = ItemLoader(BookItem(), response=response)
+        loader.add_css("title", ".product_main h1::text")
+        loader.add_css("thumbnail", ".carousel-inner img::attr(src)")
+        loader.add_css("description", ".product_page > p::text")
+        loader.add_css("price", ".product_main .price_color::text")
+
+        rate_css = ".product_main .star-rating::attr(class)"
+        loader.add_value("rate",  response.css(rate_css).get().split(' ')[-1])
+
+        loader.add_value("stock",
+                         response.css(".availability").re_first(r"(\d+)"))
+
+        return loader.load_item()
