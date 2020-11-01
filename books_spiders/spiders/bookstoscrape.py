@@ -2,7 +2,7 @@ import scrapy
 
 from scrapy.loader import ItemLoader
 
-from ..items import BookItem
+from ..loader import BookItemLoader
 
 
 class BookstoscrapeSpider(scrapy.Spider):
@@ -21,7 +21,7 @@ class BookstoscrapeSpider(scrapy.Spider):
                                  callback=self.parse_book)
 
     def parse_book(self, response):
-        loader = ItemLoader(BookItem(), response=response)
+        loader = BookItemLoader(response=response)
         loader.add_css("title", ".product_main h1::text")
         loader.add_css("thumbnail", ".carousel-inner img::attr(src)")
         loader.add_css("description", ".product_page > p::text")
@@ -32,5 +32,5 @@ class BookstoscrapeSpider(scrapy.Spider):
 
         loader.add_value("stock",
                          response.css(".availability").re_first(r"(\d+)"))
-
+        loader.add_value("url", response.url)
         return loader.load_item()
