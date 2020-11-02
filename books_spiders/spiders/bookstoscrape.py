@@ -22,8 +22,13 @@ class BookstoscrapeSpider(CrawlSpider):
         restrict_css=".product_pod h3"
     )
 
+    pagination_lx = LinkExtractor(
+        restrict_css=".pager .next",
+    )
+
     rules = [
         Rule(category_lx),
+        Rule(pagination_lx),
         Rule(product_lx, callback='parse_book')
     ]
 
