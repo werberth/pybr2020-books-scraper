@@ -1,5 +1,6 @@
 import scrapy
 
+from scrapy.linkextractors import LinkExtractor
 from scrapy.loader import ItemLoader
 
 from ..loader import BookItemLoader
@@ -10,14 +11,24 @@ class BookstoscrapeSpider(scrapy.Spider):
     allowed_domains = ['books.toscrape.com']
     start_urls = ['http://books.toscrape.com/']
 
+    category_lx = LinkExtractor(
+        allow=r'catalogue/category/',
+        restrict_css=".nav-list ul"
+    )
+
+    product_lx = LinkExtractor(
+        allow=r'catalogue/[\w\-_]+/index.html',
+        restrict_css=".product_pod h3"
+    )
+
     def parse(self, response):
-        for path in response.css(".nav-list ul a::attr(href)").getall():
-            yield scrapy.Request(response.urljoin(path),
+        for link in self.category_lx.extract_links(response):
+            yield scrapy.Request(response.urljoin(link.url),
                                  callback=self.parse_category)
 
     def parse_category(self, response):
-        for path in response.css(".product_pod h3 a::attr(href)").getall():
-            yield scrapy.Request(response.urljoin(path),
+        for link in self.product_lx.extract_links(response):
+            yield scrapy.Request(response.urljoin(link.url),
                                  callback=self.parse_book)
 
     def parse_book(self, response):
