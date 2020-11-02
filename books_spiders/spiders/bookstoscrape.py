@@ -2,11 +2,12 @@ import scrapy
 
 from scrapy.linkextractors import LinkExtractor
 from scrapy.loader import ItemLoader
+from scrapy.spiders import CrawlSpider, Rule
 
 from ..loader import BookItemLoader
 
 
-class BookstoscrapeSpider(scrapy.Spider):
+class BookstoscrapeSpider(CrawlSpider):
     name = 'bookstoscrape'
     allowed_domains = ['books.toscrape.com']
     start_urls = ['http://books.toscrape.com/']
@@ -21,15 +22,10 @@ class BookstoscrapeSpider(scrapy.Spider):
         restrict_css=".product_pod h3"
     )
 
-    def parse(self, response):
-        for link in self.category_lx.extract_links(response):
-            yield scrapy.Request(response.urljoin(link.url),
-                                 callback=self.parse_category)
-
-    def parse_category(self, response):
-        for link in self.product_lx.extract_links(response):
-            yield scrapy.Request(response.urljoin(link.url),
-                                 callback=self.parse_book)
+    rules = [
+        Rule(category_lx),
+        Rule(product_lx, callback='parse_book')
+    ]
 
     def parse_book(self, response):
         loader = BookItemLoader(response=response)
